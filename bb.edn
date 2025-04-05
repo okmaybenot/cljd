@@ -1,0 +1,47 @@
+{:tasks
+ {sample {:requires ([babashka.fs :as fs])
+          :doc "Sample command printing command line arguments"
+          :task (do
+                  (println "Printing command line arguments")
+                  (shell "echo" *command-line-args*))}
+
+  find-ios {:doc "Find iOS device id in `flutter devices` and spit it to .ios file"
+            :requires ([clojure.string :as str]
+                       [babashka.fs :as fs])
+            :task (do
+                    (let [devices (shell "flutter devices" {:out :string})
+                          ios-line (->> (:out devices)
+                                        str/split-lines
+                                        (filter (fn [line] (str/includes? line "ios")))
+                                        first)
+                          device-id (-> ios-line (str/split (re-pattern " • ")) second)]
+                      (if device-id
+                        (do
+                          (println (str "Found iOS device with id " device-id))
+                          (try (fs/delete "./.ios") (catch Exception e))
+                          (fs/create-file "./.ios")
+                          (println (str "Spitting device id to .ios"))
+                          (spit "./.ios" device-id)
+                          (println "Done."))
+
+                        (println "iOS device not found"))))}
+  upgrade {:doc "Run cljd upgrade"
+           :task (apply clojure ["-M:cljd upgrade"])}
+  update {:doc "Run cljd upgrade (alias)"
+          :task (run 'upgrade)}
+  clean {:doc "Run cljd clean"
+         :task (apply clojure ["-M:cljd clean"])}
+  dev {:doc "Run cljd flutter. Usage: bb dev | bb dev <ios|macos> | bb dev *command-line-args* (args are passed to cljd flutter)"
+       :task (cond
+               (or (= *command-line-args* '("macos")) (= *command-line-args* nil))
+               (do
+                 (println "Launching MacOS app...")
+                 (apply clojure ["-M:cljd" "flutter" "-d" "macos"]))
+               (= *command-line-args* '("ios"))
+               (do
+                 (println "Launching iOS app...")
+                 (apply clojure ["-M:cljd" "flutter" "-d" (slurp ".ios")]))
+               :else (apply clojure ["-M:cljd" "flutter" *command-line-args*]))}}}
+               
+                 
+                      
