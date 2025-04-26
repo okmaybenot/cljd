@@ -5,6 +5,26 @@
                   (println "Printing command line arguments")
                   (shell "echo" *command-line-args*))}
 
+  extend-cljd-gitignore {:requires ([babashka.fs :as fs])
+                         :doc "Adds additional files to .gitignore"
+                         :task (do 
+                                 (fs/write-lines ".gitignore" [".clj-kondo/.cache"] {:append true}))}
+  install-cljd-plus {:requires ([babashka.fs :as fs] [clojure.java.io :as io])
+                     :doc "Installs cljd plus"
+                     :task (do
+                             (let [cwd (fs/cwd)
+                                   parsed-docs "/tmp/cljd_flutter_widget_docs.json"]
+                               (println (str "Installing cljd plus to " cwd))
+                               (shell "git clone --depth 1 https://github.com/withjak/cljd_plus cljd_plus")
+                               (fs/move "cljd_plus/dart_parser" "dart_parser")
+                               (fs/move "cljd_plus/.joyride" ".joyride")
+                               (fs/delete-tree "cljd_plus")
+                               (shell "dart pub get")
+                               (shell {:dir "dart_parser"} "dart pub get")
+                               (when-not (fs/exists? (io/file parsed-docs))
+                                 (shell {:dir "dart_parser" :out :write :out-file (io/file parsed-docs)}
+                                        (str "dart run gen_docs.dart --project-path " cwd)))))}
+  
   find-ios {:doc "Find iOS device id in `flutter devices` and spit it to .ios file"
             :requires ([clojure.string :as str]
                        [babashka.fs :as fs])

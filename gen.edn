@@ -1,1 +1,6 @@
-{:cmds ["clj -M:cljd init" "echo '.clj-kondo/.cache' >> .gitignore" "git init" "git add ." "git commit -a -m \"Init\""]}
+{:cmds ["clj -M:cljd init"
+        "bb install-cljd-plus"
+        "bb extend-cljd-gitignore"
+        "git init ."
+        "git add ."
+        "git commit -a -m \"Init\""]}
